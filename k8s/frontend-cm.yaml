@@ -1,0 +1,54 @@
+apiVersion: v1
+data:
+  index.html: |
+    <!doctype html>
+    <html>
+    <head>
+      <meta charset="utf-8" />
+      <title>Webcam Demo Frontend</title>
+      <style>body{display:flex;flex-direction:column;align-items:center;padding:1rem;font-family:sans-serif} img{max-width:90%;height:auto;border:1px solid #ddd;border-radius:8px}</style>
+    </head>
+    <body>
+      <h1>Webcam feed (proxied)</h1>
+      <p>The image below is an MJPEG stream proxied by this frontend from the backend service.</p>
+      <img id="cam" src="/video_feed" alt="webcam feed" />
+    </body>
+    </html>
+  nginx.conf: |
+    worker_processes  1;
+    error_log /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+    events { worker_connections 1024; }
+    http {
+      sendfile on;
+      tcp_nopush on;
+      server {
+        listen 80;
+        location / {
+          root /usr/share/nginx/html;
+          index index.html;
+        }
+        # Proxy MJPEG stream to backend service inside the cluster
+        location /video_feed {
+          # upstream backend service name: backend-service on port 5000
+          proxy_pass http://backend-service:5000/video_feed;
+          proxy_set_header Host $host;
+          proxy_http_version 1.1;
+          proxy_buffering off;
+          proxy_request_buffering off;
+          # Preserve long-lived connections
+          proxy_set_header Connection "keep-alive";
+          chunked_transfer_encoding off;
+        }
+      }
+    }
+kind: ConfigMap
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"index.html":"\u003c!doctype html\u003e\n\u003chtml\u003e\n\u003chead\u003e\n  \u003cmeta charset=\"utf-8\" /\u003e\n  \u003ctitle\u003eWebcam Demo Frontend\u003c/title\u003e\n  \u003cstyle\u003ebody{display:flex;flex-direction:column;align-items:center;padding:1rem;font-family:sans-serif} img{max-width:90%;height:auto;border:1px solid #ddd;border-radius:8px}\u003c/style\u003e\n\u003c/head\u003e\n\u003cbody\u003e\n  \u003ch1\u003eWebcam feed (proxied)\u003c/h1\u003e\n  \u003cp\u003eThe image below is an MJPEG stream proxied by this frontend from the backend service.\u003c/p\u003e\n  \u003cimg id=\"cam\" src=\"/video_feed\" alt=\"webcam feed\" /\u003e\n\u003c/body\u003e\n\u003c/html\u003e\n","nginx.conf":"worker_processes  1;\nerror_log /var/log/nginx/error.log warn;\npid /var/run/nginx.pid;\nevents { worker_connections 1024; }\nhttp {\n  sendfile on;\n  tcp_nopush on;\n  server {\n    listen 80;\n    location / {\n      root /usr/share/nginx/html;\n      index index.html;\n    }\n    # Proxy MJPEG stream to backend service inside the cluster\n    location /video_feed {\n      # upstream backend service name: backend-service on port 5000\n      proxy_pass http://backend-service:5000/video_feed;\n      proxy_set_header Host $host;\n      proxy_http_version 1.1;\n      proxy_buffering off;\n      proxy_request_buffering off;\n      # Preserve long-lived connections\n      proxy_set_header Connection \"\"\n      chunked_transfer_encoding off;\n    }\n  }\n}\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"frontend-files-cm","namespace":"default"}}
+  creationTimestamp: "2025-10-02T08:09:39Z"
+  name: frontend-files-cm
+  namespace: default
+  resourceVersion: "6705"
+  uid: 52353881-7dc9-4af9-b0e1-a028f195f793

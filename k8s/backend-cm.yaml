@@ -1,0 +1,46 @@
+apiVersion: v1
+data:
+  app.py: |
+    from flask import Flask, Response, render_template_string
+    import cv2
+
+    app = Flask(__name__)
+
+    def gen():
+        cap = cv2.VideoCapture(1)
+        if not cap.isOpened():
+            raise RuntimeError('Could not open video device')
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            # encode as jpeg
+            ret, jpeg = cv2.imencode('.jpg', frame)
+            if not ret:
+                continue
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
+        cap.release()
+
+    @app.route('/video_feed')
+    def video_feed():
+        return Response(gen(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+    @app.route('/')
+    def index():
+        # Simple human-readable page for debug if accessed directly
+        return render_template_string('<html><body><h1>Backend: webcam stream</h1><img src="/video_feed"></body></html>')
+
+    if __name__ == '__main__':
+        # listen on 0.0.0.0 so other pods can reach it
+        app.run(host='0.0.0.0', port=5000)
+kind: ConfigMap
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"app.py":"from flask import Flask, Response, render_template_string\nimport cv2\n\napp = Flask(__name__)\n\ndef gen():\n    cap = cv2.VideoCapture(0)\n    if not cap.isOpened():\n        raise RuntimeError('Could not open video device')\n    while True:\n        ret, frame = cap.read()\n        if not ret:\n            break\n        # encode as jpeg\n        ret, jpeg = cv2.imencode('.jpg', frame)\n        if not ret:\n            continue\n        yield (b'--frame\\r\\n'\n               b'Content-Type: image/jpeg\\r\\n\\r\\n' + jpeg.tobytes() + b'\\r\\n')\n    cap.release()\n\n@app.route('/video_feed')\ndef video_feed():\n    return Response(gen(), mimetype='multipart/x-mixed-replace; boundary=frame')\n\n@app.route('/')\ndef index():\n    # Simple human-readable page for debug if accessed directly\n    return render_template_string('\u003chtml\u003e\u003cbody\u003e\u003ch1\u003eBackend: webcam stream\u003c/h1\u003e\u003cimg src=\"/video_feed\"\u003e\u003c/body\u003e\u003c/html\u003e')\n\nif __name__ == '__main__':\n    # listen on 0.0.0.0 so other pods can reach it\n    app.run(host='0.0.0.0', port=5000)\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"backend-app-cm","namespace":"default"}}
+  creationTimestamp: "2025-10-02T08:09:31Z"
+  name: backend-app-cm
+  namespace: default
+  resourceVersion: "6849"
+  uid: cf5a57a2-9953-4c32-8935-b76bbe092bf0
