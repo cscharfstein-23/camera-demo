@@ -32,7 +32,6 @@ data:
         location /video_feed {
           # upstream backend service name: backend-service on port 5000
           proxy_pass http://backend-service:5000/video_feed;
-          proxy_set_header Host $host;
           proxy_http_version 1.1;
           proxy_buffering off;
           proxy_request_buffering off;
