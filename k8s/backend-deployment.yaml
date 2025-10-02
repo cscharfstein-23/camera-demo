@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      # Service account / permissions not required for this demo
+      containers:
+      - name: backend
+        image: python:3.11-slim
+        securityContext:
+            privileged: true
+        command: ["sh", "-c"]
+        args:
+          - apt-get update && apt-get install -y ffmpeg libsm6 libxext6 && pip install --no-cache-dir flask opencv-python-headless && python /app/app.py
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: app-code
+          mountPath: /app
+        - name: video0
+          mountPath: /dev/video1
+      volumes:
+      - name: app-code
+        configMap:
+          name: backend-app-cm
+          defaultMode: 420
+      
+      - name: video0
+        hostPath:
+          path: /dev/video0
+          type: CharDevice
