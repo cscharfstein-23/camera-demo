@@ -7,7 +7,7 @@ data:
     app = Flask(__name__)
 
     def gen():
-        cap = cv2.VideoCapture(1)
+        cap = cv2.VideoCapture(0)
         if not cap.isOpened():
             raise RuntimeError('Could not open video device')
         while True:
